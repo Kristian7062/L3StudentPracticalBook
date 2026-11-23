@@ -1,5 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue'
+import ExerciseList from './components/ExerciseList.vue'
+
 const newExercise = ref('')
 const newMinutes = ref(15)
 const errorMessage = ref('')
@@ -8,6 +10,8 @@ const exercises = ref([
   { id: 1, name: 'Walking', minutes: 20, completed: false },
   { id: 2, name: 'Stretching', minutes: 10, completed: false }
 ])
+
+const editingId = ref(null)
 
 function addExercise() {
   const exerciseName = newExercise.value.trim()
@@ -58,6 +62,61 @@ function clearCompleted() {
   )
 }
 
+function startEditing(id) {
+  const exercise = exercises.value.find(item => item.id === id)
+  if (!exercise) return
+  editingId.value = id
+  newExercise.value = exercise.name
+  newMinutes.value = exercise.minutes
+  errorMessage.value = ''
+}
+
+function resetForm() {
+  editingId.value = null
+  newExercise.value = ''
+  newMinutes.value = 15
+  errorMessage.value = '' }
+
+function saveExercise() {
+  const name = newExercise.value.trim()
+  const minutes = Number(newMinutes.value)
+
+  if (!name) {
+    errorMessage.value = 'Please enter an exercise name.'
+    return
+  }
+  if (!Number.isInteger(minutes) || minutes < 1 || minutes > 180) {
+    errorMessage.value = 'Enter a whole number from 1 to 180 minutes.'
+    return
+  }
+
+  if (editingId.value === null) {
+    exercises.value.push({
+      id: nextId++,
+      name,
+      minutes,
+      completed: false
+    })
+  } else {
+    const exercise = exercises.value.find(
+      item => item.id === editingId.value
+    )
+    if (!exercise) {
+      errorMessage.value = 'This exercise is no longer available.'
+      return
+    }
+    exercise.name = name
+    exercise.minutes = minutes
+  }
+  resetForm()
+}
+function toggleExercise(id) {
+  const exercise = exercises.value.find(item => item.id === id)
+  if (exercise) {
+    exercise.completed = !exercise.completed
+  }
+}
+
 
 </script>
 
@@ -88,16 +147,25 @@ function clearCompleted() {
 
     <div class="dashboard-grid">
       <section class="panel">
-        <h2>Plan an exercise</h2>
+        <h2>{{ editingId === null ? 'Plan an exercise' : 'Edit exercise' }}</h2>
+        <form @submit.prevent="saveExercise">
+
         <!-- STEP 5: Form goes here. -->
-        <form @submit.prevent="addExercise">
+        
           <label for="exercise-name">Exercise name</label>
           <input id="exercise-name" v-model="newExercise" type="text"
-                 placeholder="For example, cycling" maxlength="60" required>
+                 placeholder="Enter exercise" maxlength="60" required>
           <label for="exercise-minutes">Duration in minutes</label>
           <input id="exercise-minutes" v-model.number="newMinutes"
                  type="number" min="1" max="180" step="1" required>
-          <button type="submit" class="primary-button">Add exercise</button>
+          <button type="submit" class="primary-button">
+            {{ editingId === null ? 'Add exercise' : 'Save changes' }}
+          </button>
+          <button v-if="editingId !== null" type="button"
+            class="secondary-button" @click="resetForm">
+            Cancel
+          </button>
+
           <p v-if="errorMessage" class="error-message" role="alert">
             {{ errorMessage }}
           </p>
@@ -116,16 +184,22 @@ function clearCompleted() {
               class="exercise"
               :class="{ completed: exercise.completed }">
             <label class="exercise-details">
-              <input type="checkbox" v-model="exercise.completed">
+              <input type="checkbox" v-model="exercise.completed" :disabled="editingId !== null">
               <span>
         <strong>{{ exercise.name }}</strong>
         <small>{{ exercise.minutes }} minutes</small>
       </span>
             </label>
             <!-- STEP 6: Remove button goes here. -->
+             <button type="button" class="secondary-button"
+              :disabled="editingId !== null"
+              @click="startEditing(exercise.id)">
+              Edit
+            </button>
+
             <button type="button" class="remove-button"
                     @click="removeExercise(exercise.id)"
-                    :aria-label="'Remove ' + exercise.name">
+                    :aria-label="'Remove ' + exercise.name":disabled="editingId !== null">
               Remove
             </button>
 
@@ -133,7 +207,8 @@ function clearCompleted() {
         </ul>
 
         <button type="button" class="secondary-button"
-                @click="clearCompleted" :disabled="completedCount === 0">
+                @click="clearCompleted" :disabled="completedCount === 0 || editingId !== null"
+>
           Clear completed
         </button>
 
