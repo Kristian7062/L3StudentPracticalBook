@@ -1,370 +1,52 @@
 <script setup>
-import { ref, computed } from 'vue'
-import ExerciseList from './components/ExerciseList.vue'
 
-const newExercise = ref('')
-const newMinutes = ref(15)
-const errorMessage = ref('')
-let nextId = 3
-const exercises = ref([
-  { id: 1, name: 'Walking', minutes: 20, completed: false },
-  { id: 2, name: 'Stretching', minutes: 10, completed: false }
-])
+import { nextTick, watch } from 'vue'
 
-const editingId = ref(null)
+import { RouterView, useRoute } from 'vue-router'
 
-function addExercise() {
-  const exerciseName = newExercise.value.trim()
-  const minutes = Number(newMinutes.value)
-  if (!exerciseName) {
-    errorMessage.value = 'Please enter an exercise name.'
-    return
-  }
-  if (!Number.isInteger(minutes) || minutes < 1 || minutes > 180) {
-    errorMessage.value = 'Enter a whole number from 1 to 180 minutes.'
-    return
-  }
-  exercises.value.push({
-    id: nextId++,
-    name: exerciseName,
-    minutes,
-    completed: false
-  })
-  newExercise.value = ''
-  newMinutes.value = 15
-  errorMessage.value = ''
-}
+import SiteNav from './components/SiteNav.vue'
 
-function removeExercise(id) {
-  exercises.value = exercises.value.filter(
-      exercise => exercise.id !== id
-  )
-}
 
-const completedCount = computed(() => {
-  return exercises.value.filter(exercise => exercise.completed).length
+const route = useRoute()
+
+
+// After client-side navigation, move keyboard focus to the new page heading.
+
+watch(() => route.fullPath, async () => {
+
+await nextTick()
+
+document.querySelector('#main-content h1')?.focus()
+
 })
-const totalMinutes = computed(() => {
-  return exercises.value.reduce(
-      (total, exercise) => total + exercise.minutes, 0
-  )
-})
-const progressPercent = computed(() => {
-  if (exercises.value.length === 0) return 0
-  return Math.round(
-      (completedCount.value / exercises.value.length) * 100
-  )
-})
-
-function clearCompleted() {
-  exercises.value = exercises.value.filter(
-      exercise => !exercise.completed
-  )
-}
-
-function startEditing(id) {
-  const exercise = exercises.value.find(item => item.id === id)
-  if (!exercise) return
-  editingId.value = id
-  newExercise.value = exercise.name
-  newMinutes.value = exercise.minutes
-  errorMessage.value = ''
-}
-
-function resetForm() {
-  editingId.value = null
-  newExercise.value = ''
-  newMinutes.value = 15
-  errorMessage.value = '' }
-
-function saveExercise() {
-  const name = newExercise.value.trim()
-  const minutes = Number(newMinutes.value)
-
-  if (!name) {
-    errorMessage.value = 'Please enter an exercise name.'
-    return
-  }
-  if (!Number.isInteger(minutes) || minutes < 1 || minutes > 180) {
-    errorMessage.value = 'Enter a whole number from 1 to 180 minutes.'
-    return
-  }
-
-  if (editingId.value === null) {
-    exercises.value.push({
-      id: nextId++,
-      name,
-      minutes,
-      completed: false
-    })
-  } else {
-    const exercise = exercises.value.find(
-      item => item.id === editingId.value
-    )
-    if (!exercise) {
-      errorMessage.value = 'This exercise is no longer available.'
-      return
-    }
-    exercise.name = name
-    exercise.minutes = minutes
-  }
-  resetForm()
-}
-function toggleExercise(id) {
-  const exercise = exercises.value.find(item => item.id === id)
-  if (exercise) {
-    exercise.completed = !exercise.completed
-  }
-}
-
 
 </script>
 
+
 <template>
-  <main class="dashboard">
-    <header class="hero">
-      <p class="eyebrow">YOUR DAILY WORKOUT PLANNER</p>
-      <h1>Shape Up</h1>
-      <p>Small steps. Stronger habits.</p>
-    </header>
-    <!-- STEP 7: Progress summary goes here. -->
-    <section class="panel summary" aria-labelledby="progress-heading">
-      <div>
-        <h2 id="progress-heading">Your progress</h2>
-        <p aria-live="polite">
-          {{ completedCount }} of {{ exercises.length }} exercises completed
-        </p>
-        <p>{{ totalMinutes }} minutes planned</p>
-      </div>
-      <div>
-        <label for="workout-progress">{{ progressPercent }}% complete</label>
-        <progress id="workout-progress" :value="progressPercent" max="100">
-          {{ progressPercent }}%
-        </progress>
-      </div>
-    </section>
 
+<a class="skip-link" href="#main-content">Skip to main content</a>
 
-    <div class="dashboard-grid">
-      <section class="panel">
-        <h2>{{ editingId === null ? 'Plan an exercise' : 'Edit exercise' }}</h2>
-        <form @submit.prevent="saveExercise">
+<div class="dashboard">
 
-        <!-- STEP 5: Form goes here. -->
-        
-          <label for="exercise-name">Exercise name</label>
-          <input id="exercise-name" v-model="newExercise" type="text"
-                 placeholder="Enter exercise" maxlength="60" required>
-          <label for="exercise-minutes">Duration in minutes</label>
-          <input id="exercise-minutes" v-model.number="newMinutes"
-                 type="number" min="1" max="180" step="1" required>
-          <button type="submit" class="primary-button">
-            {{ editingId === null ? 'Add exercise' : 'Save changes' }}
-          </button>
-          <button v-if="editingId !== null" type="button"
-            class="secondary-button" @click="resetForm">
-            Cancel
-          </button>
+<header class="hero">
 
-          <p v-if="errorMessage" class="error-message" role="alert">
-            {{ errorMessage }}
-          </p>
-        </form>
+<p class="eyebrow">YOUR DAILY WORKOUT PLANNER</p>
 
-      </section>
-      <section class="panel">
-        <h2>Your workout</h2>
+<p class="site-title">Shape Up</p>
 
-        <!-- STEP 4: Exercise list goes here. -->
-        <p v-if="exercises.length === 0" class="empty-state">
-          No exercises yet. Add one to start your plan.
-        </p>
-        <ul v-else class="exercise-list">
-          <li v-for="exercise in exercises" :key="exercise.id"
-              class="exercise"
-              :class="{ completed: exercise.completed }">
-            <label class="exercise-details">
-              <input type="checkbox" v-model="exercise.completed" :disabled="editingId !== null">
-              <span>
-        <strong>{{ exercise.name }}</strong>
-        <small>{{ exercise.minutes }} minutes</small>
-      </span>
-            </label>
-            <!-- STEP 6: Remove button goes here. -->
-             <button type="button" class="secondary-button"
-              :disabled="editingId !== null"
-              @click="startEditing(exercise.id)">
-              Edit
-            </button>
+<p>Small steps. Stronger habits.</p>
 
-            <button type="button" class="remove-button"
-                    @click="removeExercise(exercise.id)"
-                    :aria-label="'Remove ' + exercise.name":disabled="editingId !== null">
-              Remove
-            </button>
+</header>
 
-          </li>
-        </ul>
+<SiteNav />
 
-        <button type="button" class="secondary-button"
-                @click="clearCompleted" :disabled="completedCount === 0 || editingId !== null"
->
-          Clear completed
-        </button>
+<main id="main-content" tabindex="-1">
 
+<RouterView />
 
-      </section>
-    </div>
-  </main>
+</main>
+
+</div>
+
 </template>
-
-<style>
-:root {
-  --background: #f0f4f8;
-  --surface: #ffffff;
-  --text: #172b3a;
-  --muted: #526575;
-  --brand: #397d9a;
-  --brand-dark: #022935;
-  --border: #ccd7df;
-  --borderRadiousBig: 10px;
-}
-* { box-sizing: border-box; }
-body {
-  margin: 0;
-  background: var(--background);
-  color: var(--text);
-  font-family: Bahnschrift, Arial, sans-serif;
-}
-button, input { font: inherit; }
-.dashboard {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 32px 20px 60px;
-}
-.hero {
-  padding: 40px;
-  margin-bottom: 24px;
-  border-radius: var(--borderRadiousBig);
-  background: linear-gradient(120deg, var(--brand), var(--brand-dark));
-  color: white;
-}
-.eyebrow {
-  font-size: 12px;
-  font-weight: bold;
-  letter-spacing: 2px;
-}
-.hero h1 { margin: 12px 0; font-size: clamp(40px, 7vw, 64px); }
-.hero p { line-height: 1.6; }
-.dashboard-grid {
-  display: grid;
-  grid-template-columns: 1fr 1.4fr;
-  gap: 24px;
-}
-.panel {
-  min-width: 0;
-  padding: 28px;
-  border: 1px solid var(--border);
-  border-radius: var(--borderRadiousBig);
-  background: var(--surface);
-  box-shadow: 0 8px 24px #172b3a08;
-}
-h2 { margin-top: 0; font-size: 22px; }
-.summary {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  align-items: center;
-  gap: 24px;
-  margin-bottom: 24px;
-}
-.summary p { color: var(--muted); }
-label { display: block; margin-bottom: 8px; font-weight: bold; }
-form input {
-  width: 100%;
-  padding: 12px;
-  margin-bottom: 20px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: #fafcfd;
-  color: var(--text);
-}
-button {
-  padding: 12px 16px;
-  border: 0;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-.primary-button {
-  width: 100%; background: var(--brand); color: white;
-}
-.primary-button:hover { background: var(--brand-dark); }
-.secondary-button {
-  margin-top: 20px; background: #e4edf2; color: #d63021;
-}
-.secondary-button:hover { background: #d63021; color: white;}
-button:disabled { opacity: 0.5; cursor: not-allowed;}
-.exercise-list {
-  display: grid;
-  gap: 12px;
-  padding: 0;
-  margin: 0;
-  list-style: none;
-}
-.exercise {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 16px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-}
-.exercise-details {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
-  margin: 0;
-  cursor: pointer;
-}
-.exercise-details input {
-  width: 20px;
-  height: 20px;
-  flex-shrink: 0;
-  accent-color: var(--brand);
-}
-.exercise strong { display: block; overflow-wrap: anywhere; }
-.exercise small {
-  display: block;
-  margin-top: 6px;
-  color: var(--muted);
-  font-weight: normal;
-}
-.completed { background: #edf7f1; border-color: #87b59c; }
-.completed strong { text-decoration: line-through; }
-.remove-button {
-  flex-shrink: 0;
-  padding: 8px;
-  background: #fff0ee;
-  color: #9f291d;
-}
-.remove-button:hover { background: #ffddd7; }
-progress { width: 100%; height: 20px; accent-color: var(--brand); }
-.empty-state {
-  padding: 24px;
-  border: 2px dashed var(--border);
-  border-radius: 12px;
-  color: var(--muted);
-  text-align: center;
-}
-.error-message { color: #a1261b; line-height: 1.5; }
-:focus-visible { outline: 3px solid #b55000; outline-offset: 3px; }
-@media (max-width: 700px) {
-  .dashboard-grid, .summary { grid-template-columns: 1fr; }
-  .hero, .panel { padding: 24px; }
-  .exercise { flex-wrap: wrap; }
-}
-</style>
-
-
